@@ -1,139 +1,103 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'dart:async';
 
 void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => TaskProvider(),
-      child: MyApp(),
-    ),
-  );
+  runApp(App());
 }
 
-class MyApp extends StatelessWidget {
+class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: TodoHome(),
+      home: LoadingScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class TodoHome extends StatefulWidget {
+class LoadingScreen extends StatefulWidget {
   @override
-  State<TodoHome> createState() => _TodoHomeState();
+  State<LoadingScreen> createState() => _LoadingScreenState();
 }
 
-class _TodoHomeState extends State<TodoHome> {
-  final taskController = TextEditingController();
-  String selectedPriority = 'Normal';
+class _LoadingScreenState extends State<LoadingScreen> {
+  bool isDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Timer(Duration(seconds: 3), () {
+      setState(() {
+        isDone = true;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<TaskProvider>(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('To-Do App (${provider.taskCount} tasks)'),
+    return isDone ? OnboardingScreen() : Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(20),
+    );
+  }
+}
+
+class OnboardingScreen extends StatefulWidget {
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  double opacity1 = 0;
+  double opacity2 = 0;
+  double opacity3 = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    Timer(Duration(milliseconds: 500), () => setState(() => opacity1 = 1));
+    Timer(Duration(milliseconds: 1000), () => setState(() => opacity2 = 1));
+    Timer(Duration(milliseconds: 1500), () => setState(() => opacity3 = 1));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.deepPurple[50],
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: taskController,
-              decoration: InputDecoration(
-                labelText: 'Enter Task',
+            AnimatedOpacity(
+              opacity: opacity1,
+              duration: Duration(milliseconds: 800),
+              child: Text(
+                'Welcome to Flutter App',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                DropdownButton<String>(
-                  value: selectedPriority,
-                  items: ['Low', 'Normal', 'High']
-                      .map((val) => DropdownMenuItem(value: val, child: Text(val)))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) setState(() => selectedPriority = val);
-                  },
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final text = taskController.text.trim();
-                    if (text.isNotEmpty) {
-                      provider.addTask(text, selectedPriority);
-                      taskController.clear();
-                    }
-                  },
-                  child: Text('Add Task'),
-                ),
-              ],
+            SizedBox(height: 20),
+            AnimatedOpacity(
+              opacity: opacity2,
+              duration: Duration(milliseconds: 800),
+              child: Text(
+                'Build beautiful UIs',
+                style: TextStyle(fontSize: 20),
+              ),
             ),
             SizedBox(height: 20),
-            Expanded(
-              child: Consumer<TaskProvider>(
-                builder: (_, taskData, __) {
-                  return ListView.builder(
-                    itemCount: taskData.taskCount,
-                    itemBuilder: (_, index) {
-                      final task = taskData.tasks[index];
-                      return ListTile(
-                        leading: Checkbox(
-                          value: task.isDone,
-                          onChanged: (_) => taskData.toggleTask(index),
-                        ),
-                        title: Text(
-                          task.title,
-                          style: TextStyle(
-                            decoration: task.isDone ? TextDecoration.lineThrough : null,
-                          ),
-                        ),
-                        subtitle: Text('Priority: ${task.priority}'),
-                        trailing: IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () => taskData.deleteTask(index),
-                        ),
-                      );
-                    },
-                  );
-                },
+            AnimatedOpacity(
+              opacity: opacity3,
+              duration: Duration(milliseconds: 800),
+              child: Text(
+                'Fast development, expressive design',
+                style: TextStyle(fontSize: 18),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-}
-
-class Task {
-  final String title;
-  final String priority;
-  bool isDone;
-
-  Task({required this.title, required this.priority, this.isDone = false});
-}
-
-class TaskProvider extends ChangeNotifier {
-  final List<Task> _tasks = [];
-
-  List<Task> get tasks => _tasks;
-
-  int get taskCount => _tasks.length;
-
-  void addTask(String title, String priority) {
-    _tasks.add(Task(title: title, priority: priority));
-    notifyListeners();
-  }
-
-  void toggleTask(int index) {
-    _tasks[index].isDone = !_tasks[index].isDone;
-    notifyListeners();
-  }
-
-  void deleteTask(int index) {
-    _tasks.removeAt(index);
-    notifyListeners();
   }
 }
