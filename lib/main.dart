@@ -1,97 +1,84 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(ProfileApp());
+  runApp(ProfileCardApp());
 }
 
-class ProfileApp extends StatelessWidget {
+class ProfileCardApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: ProfilePage(),
+      home: ProfileCardPage(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class ProfilePage extends StatelessWidget {
+class ProfileCardPage extends StatelessWidget {
+  final String profileImage =
+      'https://i.imgur.com/BoN9kdC.png';
+  final String backgroundImage =
+      'https://images.unsplash.com/photo-1522071820081-009f0129c71c';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Profile')),
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: AssetImage('assets/profile.jpg'),
-                  fit: BoxFit.cover,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.network(
+              backgroundImage,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+            ),
+          ),
+          Center(
+            child: Card(
+              margin: EdgeInsets.symmetric(horizontal: 20),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 8,
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundImage: NetworkImage(profileImage),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Sai Prashanth',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'A passionate Flutter Developer who loves crafting beautiful UIs and clean code.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                    ),
+                    SizedBox(height: 20),
+                    ListTile(
+                      leading: Icon(Icons.email),
+                      title: Text('saiprashanth@example.com'),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.link),
+                      title: Text('linkedin.com/in/saiprashanth'),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(height: 20),
-            Text(
-              'Sai Prashanth',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Flutter Developer',
-              style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-            ),
-            SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                InfoBox(label: 'Posts', value: '25'),
-                InfoBox(label: 'Followers', value: '1.2K'),
-                InfoBox(label: 'Following', value: '180'),
-              ],
-            ),
-            SizedBox(height: 30),
-            CustomButton(text: 'Edit Profile', onPressed: () {}),
-            SizedBox(height: 10),
-            CustomButton(text: 'Logout', onPressed: () {}),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class InfoBox extends StatelessWidget {
-  final String label;
-  final String value;
-
-  InfoBox({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.grey[600])),
-      ],
-    );
-  }
-}
-
-class CustomButton extends StatelessWidget {
-  final String text;
-  final VoidCallback onPressed;
-
-  CustomButton({required this.text, required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 45)),
-      child: Text(text),
     );
   }
 }
