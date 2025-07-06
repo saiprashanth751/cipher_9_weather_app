@@ -1,119 +1,161 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
-  runApp(HabitTrackerApp());
+  runApp(MainApp());
 }
 
-class HabitTrackerApp extends StatelessWidget {
+class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: HabitTrackerHome(),
+      home: LoginScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class Habit {
-  final String title;
-  bool isDone;
-  double progress;
 
-  Habit({required this.title, this.isDone = false, this.progress = 0});
-}
-
-class HabitTrackerHome extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
   @override
-  State<HabitTrackerHome> createState() => _HabitTrackerHomeState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _HabitTrackerHomeState extends State<HabitTrackerHome> {
-  List<Habit> habits = [
-    Habit(title: 'Drink Water'),
-    Habit(title: 'Exercise'),
-    Habit(title: 'Read Book'),
-    Habit(title: 'Meditate'),
-  ];
+class _LoginScreenState extends State<LoginScreen> {
+  final emailCtrl = TextEditingController();
+  final passCtrl = TextEditingController();
+  bool isLoading = false;
+  String error = '';
 
-  void toggleHabit(int index) {
+  void attemptLogin() async {
+  setState(() {
+    isLoading = true;
+    error = '';
+  });
+
+  final response = await http.post(
+    Uri.parse('https://reqres.in/api/login'),
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'reqres-free-v1',
+    },
+    body: jsonEncode({
+      'email': emailCtrl.text.trim(),
+      'password': passCtrl.text.trim(),
+    }),
+  );
+
+  setState(() => isLoading = false);
+
+  if (response.statusCode == 200) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => WeatherScreen()),
+    );
+  } else {
     setState(() {
-      var habit = habits[index];
-      habit.isDone = !habit.isDone;
-      habit.progress = habit.isDone ? 1.0 : 0.0;
+      error = 'Login failed';
     });
   }
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Habit Tracker')),
-      body: ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: habits.length,
-        itemBuilder: (context, index) {
-          final habit = habits[index];
-          return Card(
-            margin: EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+      appBar: AppBar(title: Text('Login')),
+      body: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            TextField(controller: emailCtrl, decoration: InputDecoration(labelText: 'Email')),
+            TextField(controller: passCtrl, obscureText: true, decoration: InputDecoration(labelText: 'Password')),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: isLoading ? null : attemptLogin,
+              child: isLoading
+                  ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text('Login'),
             ),
-            elevation: 4,
-            child: InkWell(
-              onTap: () => toggleHabit(index),
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            habit.title,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        AnimatedSwitcher(
-                          duration: Duration(milliseconds: 300),
-                          transitionBuilder: (child, anim) =>
-                              ScaleTransition(scale: anim, child: child),
-                          child: habit.isDone
-                              ? Icon(Icons.check_circle, color: Colors.green, key: ValueKey(true))
-                              : Icon(Icons.radio_button_unchecked, color: Colors.grey, key: ValueKey(false)),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12),
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 500),
-                      height: 10,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 500),
-                          width: MediaQuery.of(context).size.width * habit.progress * 0.8,
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
+            if (error.isNotEmpty) ...[
+              SizedBox(height: 10),
+              Text(error, style: TextStyle(color: Colors.red)),
+            ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+
+
+class WeatherScreen extends StatefulWidget {
+  @override
+  State<WeatherScreen> createState() => _WeatherScreenState();
+}
+
+class _WeatherScreenState extends State<WeatherScreen> {
+  Map<String, dynamic>? weatherData;
+  bool isLoading = true;
+  String error = '';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchWeather();
+  }
+
+  void fetchWeather() async {
+    final city = 'London';
+
+    try {
+      final response = await http.get(Uri.parse(
+          'https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=0.1276&current_weather=true'));
+
+      if (response.statusCode == 200) {
+        setState(() {
+          weatherData = json.decode(response.body);
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed');
+      }
+    } catch (e) {
+      setState(() {
+        error = 'Could not load weather';
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Widget body;
+
+    if (isLoading) {
+      body = Center(child: CircularProgressIndicator());
+    } else if (error.isNotEmpty) {
+      body = Center(child: Text(error));
+    } else {
+      final temp = weatherData!['current_weather']['temperature'];
+      final wind = weatherData!['current_weather']['windspeed'];
+      body = Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Current Weather in London', style: TextStyle(fontSize: 20)),
+            SizedBox(height: 10),
+            Text('Temperature: $temp°C', style: TextStyle(fontSize: 18)),
+            Text('Wind Speed: $wind km/h', style: TextStyle(fontSize: 18)),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Weather')),
+      body: body,
     );
   }
 }
