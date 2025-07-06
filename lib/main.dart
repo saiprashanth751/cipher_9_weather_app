@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 void main() {
   runApp(
     ChangeNotifierProvider(
-      create: (_) => CartProvider(),
+      create: (_) => TaskProvider(),
       child: MyApp(),
     ),
   );
@@ -14,110 +14,88 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: LoginScreen(),
+      home: TodoHome(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class LoginScreen extends StatefulWidget {
+class TodoHome extends StatefulWidget {
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<TodoHome> createState() => _TodoHomeState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
-  String error = '';
-
-  void validateLogin() {
-    String u = usernameController.text;
-    String p = passwordController.text;
-    if (u == 'admin' && p == '1234') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => CartScreen()),
-      );
-    } else {
-      setState(() {
-        error = 'Invalid credentials';
-      });
-    }
-  }
+class _TodoHomeState extends State<TodoHome> {
+  final taskController = TextEditingController();
+  String selectedPriority = 'Normal';
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<TaskProvider>(context);
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
+      appBar: AppBar(
+        title: Text('To-Do App (${provider.taskCount} tasks)'),
+      ),
       body: Padding(
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
             TextField(
-              controller: usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
+              controller: taskController,
+              decoration: InputDecoration(
+                labelText: 'Enter Task',
+              ),
             ),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(labelText: 'Password'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                DropdownButton<String>(
+                  value: selectedPriority,
+                  items: ['Low', 'Normal', 'High']
+                      .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => selectedPriority = val);
+                  },
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final text = taskController.text.trim();
+                    if (text.isNotEmpty) {
+                      provider.addTask(text, selectedPriority);
+                      taskController.clear();
+                    }
+                  },
+                  child: Text('Add Task'),
+                ),
+              ],
             ),
             SizedBox(height: 20),
-            ElevatedButton(onPressed: validateLogin, child: Text('Login')),
-            if (error.isNotEmpty) ...[
-              SizedBox(height: 10),
-              Text(error, style: TextStyle(color: Colors.red)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class CartScreen extends StatelessWidget {
-  final List<String> availableItems = [
-    'Apples',
-    'Bananas',
-    'Oranges',
-    'Mangoes',
-    'Pineapples'
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    var cart = Provider.of<CartProvider>(context);
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Shopping Cart')),
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text('Available Items:', style: TextStyle(fontSize: 18)),
-            SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              children: availableItems.map((item) {
-                return ElevatedButton(
-                  onPressed: () => cart.addItem(item),
-                  child: Text('Add $item'),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 30),
-            Text('Cart Items:', style: TextStyle(fontSize: 18)),
             Expanded(
-              child: ListView.builder(
-                itemCount: cart.items.length,
-                itemBuilder: (_, index) {
-                  final item = cart.items[index];
-                  return ListTile(
-                    title: Text(item),
-                    trailing: IconButton(
-                      icon: Icon(Icons.delete),
-                      onPressed: () => cart.removeItem(item),
-                    ),
+              child: Consumer<TaskProvider>(
+                builder: (_, taskData, __) {
+                  return ListView.builder(
+                    itemCount: taskData.taskCount,
+                    itemBuilder: (_, index) {
+                      final task = taskData.tasks[index];
+                      return ListTile(
+                        leading: Checkbox(
+                          value: task.isDone,
+                          onChanged: (_) => taskData.toggleTask(index),
+                        ),
+                        title: Text(
+                          task.title,
+                          style: TextStyle(
+                            decoration: task.isDone ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                        subtitle: Text('Priority: ${task.priority}'),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () => taskData.deleteTask(index),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -129,18 +107,33 @@ class CartScreen extends StatelessWidget {
   }
 }
 
-class CartProvider extends ChangeNotifier {
-  final List<String> _items = [];
+class Task {
+  final String title;
+  final String priority;
+  bool isDone;
 
-  List<String> get items => _items;
+  Task({required this.title, required this.priority, this.isDone = false});
+}
 
-  void addItem(String item) {
-    _items.add(item);
+class TaskProvider extends ChangeNotifier {
+  final List<Task> _tasks = [];
+
+  List<Task> get tasks => _tasks;
+
+  int get taskCount => _tasks.length;
+
+  void addTask(String title, String priority) {
+    _tasks.add(Task(title: title, priority: priority));
     notifyListeners();
   }
 
-  void removeItem(String item) {
-    _items.remove(item);
+  void toggleTask(int index) {
+    _tasks[index].isDone = !_tasks[index].isDone;
+    notifyListeners();
+  }
+
+  void deleteTask(int index) {
+    _tasks.removeAt(index);
     notifyListeners();
   }
 }
