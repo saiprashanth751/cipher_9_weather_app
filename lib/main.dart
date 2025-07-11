@@ -109,6 +109,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
   void fetchWeather() async {
     final city = 'London';
 
+    //Need to try another api with good functionalities...
     try {
       final response = await http.get(Uri.parse(
           'https://api.open-meteo.com/v1/forecast?latitude=51.5072&longitude=0.1276&current_weather=true'));
